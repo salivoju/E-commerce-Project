@@ -1,0 +1,15 @@
+spring:
+  application:
+  name: discovery-server
+
+# Run the discovery server on the standard port 8761
+server:
+  port: 8761
+
+# Eureka server configuration
+eureka:
+  client:
+    # A Eureka server does not need to register with itself.
+    register-with-eureka: false
+    # A Eureka server does not need to fetch a copy of the registry from itself.
+    fetch-registry: false

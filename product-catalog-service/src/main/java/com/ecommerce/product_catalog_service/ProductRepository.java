@@ -1,10 +1,9 @@
 package com.ecommerce.product_catalog_service;
 
-import jakarta.persistence.Id;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 
 /**
  * This is our Repository interface.

@@ -1,0 +1,45 @@
+
+# The gateway will be the main entry point on port 8080
+server:
+  port: 8080
+
+# Give the gateway service a name
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      # Define the routing rules
+      routes:
+        # Route #1: For the Product Service
+        - id: product-catalog-service-route
+          # When a request comes in, forward it to the service named "product-service"
+          # The "lb" stands for "load balancer" - handled by Eureka Discovery
+          uri: lb://product-catalog-service
+          # The condition for this route to be used:
+          predicates:
+            # If the request path matches /api/v1/products/**
+            - Path=/api/v1/products/**
+
+        # Route #2: For the User Service
+        - id: user-service-route
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/users/**
+
+eureka:
+  instance: # This is the new block
+    prefer-ip-address: true
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    # Set specific logging levels to be very verbose
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.client.loadbalancer: TRACE
+    reactor.netty: DEBUG
