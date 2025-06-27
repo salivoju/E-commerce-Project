@@ -101,4 +101,10 @@ public class ProductController {
 
         return ResponseEntity.noContent().build();
     }
+    // In ProductController.java, add this new method
+
+    @GetMapping("/whoami")
+    public String whoAmI(@RequestHeader("X-Authenticated-User-Username") String username) {
+        return "The request was made by: " + username;
+    }
 }

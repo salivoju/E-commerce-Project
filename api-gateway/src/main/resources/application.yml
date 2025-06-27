@@ -23,12 +23,16 @@ spring:
           predicates:
             # If the request path matches /api/v1/products/**
             - Path=/api/v1/products/**
+          filters:
+            - JwtAuthFilter
 
         # Route #2: For the User Service
         - id: user-service-route
           uri: lb://user-service
           predicates:
-            - Path=/api/v1/users/**
+            - Path=/api/v1/users/**, /api/v1/auth/**
+          filters:
+            - JwtAuthFilter
 
 eureka:
   instance: # This is the new block
