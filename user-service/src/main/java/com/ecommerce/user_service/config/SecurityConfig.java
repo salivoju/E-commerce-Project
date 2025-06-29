@@ -22,7 +22,11 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**", "/api/v1/users/**").permitAll() // Make user creation public for now
+                        // Rule 1: Make all auth endpoints public
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Rule 2: For this service, let's also make user creation/viewing public for now
+                        .requestMatchers("/api/v1/users/**").permitAll()
+                        // Rule 3: Any other request must be authenticated
                         .anyRequest().authenticated()
                 )
                 .build();

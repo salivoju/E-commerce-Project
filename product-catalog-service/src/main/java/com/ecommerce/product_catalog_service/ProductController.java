@@ -29,7 +29,8 @@ public class ProductController {
      * @return The saved product object and an HTTP status code of 201 (CREATED).
      */
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+    public ResponseEntity<Product> createProduct(@RequestBody Product product,@RequestHeader("X-Authenticated-User-Username") String userName){
+        System.out.println(">>> createProduct request received from user: " + userName);
         Product savedProduct = productRepository.save(product);
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
     }
@@ -107,4 +108,6 @@ public class ProductController {
     public String whoAmI(@RequestHeader("X-Authenticated-User-Username") String username) {
         return "The request was made by: " + username;
     }
+
+
 }

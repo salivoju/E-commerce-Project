@@ -1,5 +1,6 @@
 package com.ecommerce.user_service;
 
+import com.ecommerce.user_service.model.Role;
 import com.ecommerce.user_service.model.User;
 import com.ecommerce.user_service.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -20,18 +21,26 @@ public class UserServiceApplication {
 	@Bean
 	public CommandLineRunner createTestUser(UserRepository userRepository, PasswordEncoder passwordEncoder) {
 		return args -> {
-			// Check if the test user already exists to avoid creating it every time
-			if (userRepository.findByEmail("test@example.com").isEmpty()) {
-				System.out.println("Creating test user...");
-				User testUser = new User();
-				testUser.setName("Test User");
-				testUser.setEmail("test@example.com");
-				// IMPORTANT: Encode the password before saving
-				testUser.setPassword(passwordEncoder.encode("password"));
-				userRepository.save(testUser);
-				System.out.println("Test user created!");
-			} else {
-				System.out.println("Test user already exists.");
+			// Create an ADMIN user
+			if (userRepository.findByEmail("admin@example.com").isEmpty()) {
+				User adminUser = new User();
+				adminUser.setName("Admin User");
+				adminUser.setEmail("admin@example.com");
+				adminUser.setPassword(passwordEncoder.encode("password"));
+				adminUser.setRole(Role.ROLE_ADMIN);
+				userRepository.save(adminUser);
+				System.out.println(">>> Admin user created!");
+			}
+
+			// Create a REGULAR user
+			if (userRepository.findByEmail("user@example.com").isEmpty()) {
+				User regularUser = new User();
+				regularUser.setName("Regular User");
+				regularUser.setEmail("user@example.com");
+				regularUser.setPassword(passwordEncoder.encode("password"));
+				regularUser.setRole(Role.ROLE_USER);
+				userRepository.save(regularUser);
+				System.out.println(">>> Regular user created!");
 			}
 		};
 	}

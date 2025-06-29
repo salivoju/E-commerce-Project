@@ -2,6 +2,7 @@ package com.ecommerce.user_service.config.security;
 
 import com.ecommerce.user_service.model.User;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -9,28 +10,27 @@ import java.util.List;
 
 public class UserInfoDetails implements UserDetails {
 
-    private final String name;
-    private final String password;
+    private final User user;
+
 
     public UserInfoDetails(User user) {
-        this.name = user.getEmail(); // We will use email as the username
-        this.password = user.getPassword();
+        this.user = user;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // For now, we will return an empty list as we are not using roles yet.
-        return List.of();
+        return List.of(new SimpleGrantedAuthority(user.getRole().name()));
     }
 
     @Override
     public String getPassword() {
-        return password;
+        return user.getName();
     }
 
     @Override
     public String getUsername() {
-        return name;
+        return user.getName();
     }
 
     // For simplicity, we are returning true for these.
