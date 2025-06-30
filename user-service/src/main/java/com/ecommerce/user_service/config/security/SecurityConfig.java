@@ -1,6 +1,5 @@
-package com.ecommerce.user_service.config;
+package com.ecommerce.user_service.config.security;
 
-import com.ecommerce.user_service.config.security.UserInfoService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

@@ -1,6 +1,7 @@
-package com.ecommerce.product_catalog_service;
+package com.ecommerce.product_catalog_service.controller;
 
-import jakarta.persistence.Id;
+import com.ecommerce.product_catalog_service.repository.ProductRepository;
+import com.ecommerce.product_catalog_service.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,8 +30,15 @@ public class ProductController {
      * @return The saved product object and an HTTP status code of 201 (CREATED).
      */
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product,@RequestHeader("X-Authenticated-User-Username") String userName){
+    public ResponseEntity<Product> createProduct(@RequestBody Product product, @RequestHeader("X-Authenticated-User-Username") String userName,
+                                                 @RequestHeader("X-Authenticated-User-Roles") String userRole){
         System.out.println(">>> createProduct request received from user: " + userName);
+        System.out.println(">>> User roles: " + userRole);
+
+        if (!userRole.contains("ROLE_ADMIN")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(null);
+        }
         Product savedProduct = productRepository.save(product);
         return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
     }

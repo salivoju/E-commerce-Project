@@ -1,12 +1,14 @@
 package com.ecommerce.api_gateway.service;
 
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.List;
 
 @Service
 public class JwtService {
@@ -31,20 +33,38 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    public List<String> extractRoles(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            // Since we don't store roles in JWT yet, let's extract from username
+            // This is a temporary solution for learning
+            String username = claims.getSubject();
+
+            // For now, hardcode admin check (we'll improve this)
+            if ("admin@example.com".equals(username)) {
+                return List.of("ROLE_ADMIN");
+            } else {
+                return List.of("ROLE_USER");
+            }
+        } catch (Exception e) {
+            return List.of("ROLE_USER");
+        }
+    }
+
 //    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
 //        final Claims claims = extractAllClaims(token);
 //        return claimsResolver.apply(claims);
 
 //    }
 
-//    private Claims extractAllClaims(String token) {
-//        return Jwts
-//                .parser()                          // Changed from parserBuilder()
-//                .verifyWith(getSigningKey())       // Changed from setSigningKey()
-//                .build()
-//                .parseSignedClaims(token)          // Changed from parseClaimsJws()
-//                .getPayload();                     // Changed from getBody()
-//    }
+    private Claims extractAllClaims(String token) {
+        return Jwts
+                .parser()                          // Changed from parserBuilder()
+                .verifyWith(getSigningKey())       // Changed from setSigningKey()
+                .build()
+                .parseSignedClaims(token)          // Changed from parseClaimsJws()
+                .getPayload();                     // Changed from getBody()
+    }
 
 
 }

@@ -15,6 +15,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Component
 public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Config> {
@@ -57,9 +58,14 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
                     // Extract user information from the token
                     String username = jwtService.extractUsername(token);
 
+//                    Extract roles from JWT
+                    List<String> roles = jwtService.extractRoles(token);
+                    String roleHeader = String.join(",", roles);
+
                     // Add user info to request headers for downstream services
                     ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
                             .header("X-Authenticated-User-Username", username)
+                            .header("X-Authenticated-User-Roles",roleHeader)
                             .build();
 
                     // Continue with modified request

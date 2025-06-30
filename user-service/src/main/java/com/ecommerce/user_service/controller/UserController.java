@@ -1,4 +1,4 @@
-package com.ecommerce.user_service;
+package com.ecommerce.user_service.controller;
 
 import com.ecommerce.user_service.model.User;
 import com.ecommerce.user_service.repository.UserRepository;

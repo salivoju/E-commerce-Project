@@ -1,4 +1,4 @@
-package com.ecommerce.product_catalog_service;
+package com.ecommerce.product_catalog_service.model;
 
 
 import jakarta.persistence.Entity;

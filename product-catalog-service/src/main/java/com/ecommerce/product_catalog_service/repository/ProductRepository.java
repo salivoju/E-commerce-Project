@@ -1,6 +1,7 @@
-package com.ecommerce.product_catalog_service;
+package com.ecommerce.product_catalog_service.repository;
 
 
+import com.ecommerce.product_catalog_service.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
