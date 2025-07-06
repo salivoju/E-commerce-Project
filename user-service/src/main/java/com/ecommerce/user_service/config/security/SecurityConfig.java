@@ -2,6 +2,7 @@ package com.ecommerce.user_service.config.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -21,11 +22,10 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Rule 1: Make all auth endpoints public
+                        // Explicitly allow these endpoints without authentication
                         .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Rule 2: For this service, let's also make user creation/viewing public for now
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users/register").permitAll()
                         .requestMatchers("/api/v1/users/**").permitAll()
-                        // Rule 3: Any other request must be authenticated
                         .anyRequest().authenticated()
                 )
                 .build();
