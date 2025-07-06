@@ -34,6 +34,14 @@ spring:
           filters:
             - JwtAuthFilter
 
+        # Route #3: For the Order Service
+        - id: order-service-route
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/orders/**
+          filters:
+            - JwtAuthFilter
+
 eureka:
   instance: # This is the new block
     prefer-ip-address: true
