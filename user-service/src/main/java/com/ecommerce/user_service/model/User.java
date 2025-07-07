@@ -5,7 +5,9 @@ import lombok.Data;
 
 @Entity
 // We specify the table name "users" because "user" is often a reserved keyword in SQL.
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "email", name = "uk_user_email")
+})
 @Data
 public class User {
 
@@ -15,6 +17,7 @@ public class User {
 
     private String name;
 
+    @Column(unique = true,nullable = false)
     private String email;
 
     // In a real application, this would be securely hashed!

@@ -26,11 +26,28 @@ public class UserController {
      * PUBLIC: User registration (no authentication required)
      */
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        System.out.println(">>> Public registration for: " + user.getEmail());
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        User savedUser = userRepository.save(user);
-        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        try {
+            System.out.println(">>> Public registration for: " + user.getEmail());
+
+            // Check if user already exists
+            Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+            if (existingUser.isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("error", "User with email " + user.getEmail() + " already exists"));
+            }
+
+            // Hash password and save
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+            User savedUser = userRepository.save(user);
+            System.out.println(">>> User registered successfully: " + savedUser.getEmail());
+            return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+
+        } catch (Exception e) {
+            System.err.println(">>> Registration error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Registration failed: " + e.getMessage()));
+        }
     }
 
     /**
@@ -55,6 +72,13 @@ public class UserController {
         if (!userRoles.contains("ROLE_ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Admin access required to create users"));
+        }
+
+        // Check if user already exists
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "User with email " + user.getEmail() + " already exists"));
         }
 
         // Hash password and save
