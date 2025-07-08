@@ -54,6 +54,23 @@ services:
       timeout: 5s
       retries: 5
 
+  cart-db:
+    image: postgres:15
+    container_name: cart-service-db
+    environment:
+      POSTGRES_DB: cart_service_db
+      POSTGRES_USER: ecommerce_user
+      POSTGRES_PASSWORD: ecommerce_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - cart_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ecommerce_user -d cart_service_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Optional: pgAdmin for database management
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -69,9 +86,11 @@ services:
       - user-db
       - product-db
       - order-db
+      - cart-db
 
 volumes:
   user_data:
   product_data:
   order_data:
+  cart_data:
   pgadmin_data:
