@@ -42,6 +42,13 @@ spring:
           filters:
             - JwtAuthFilter
 
+      # Route #4: For the Cart Service (ADD THIS!)
+        - id: cart-service-route
+          uri: lb://cart-service
+          predicates:
+            - Path=/api/v1/cart/**
+          filters:
+            - JwtAuthFilter
 eureka:
   instance: # This is the new block
     prefer-ip-address: true
