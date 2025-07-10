@@ -2,6 +2,9 @@ package com.ecommerce.cart_service.service;
 
 import com.ecommerce.cart_service.client.ProductServiceClient;
 import com.ecommerce.cart_service.dto.AddToCartRequest;
+import com.ecommerce.inventory_service.dto.StockReservationRequest;
+import com.ecommerce.inventory_service.dto.StockValidationResponse;
+import com.ecommerce.order_service.client.InventoryServiceClient;
 import com.ecommerce.order_service.dto.ProductResponse;
 import com.ecommerce.cart_service.dto.UpdateCartItemRequest;
 import com.ecommerce.cart_service.model.Cart;
@@ -27,6 +30,9 @@ public class CartServiceImpl implements CartService {
 
     @Autowired
     private ProductServiceClient productServiceClient;
+
+    @Autowired
+    private InventoryServiceClient inventoryClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -56,43 +62,49 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public Cart addToCart(String userEmail, AddToCartRequest request) {
-        // Validate input
-        if (request.getProductId() == null || request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new RuntimeException("Invalid product ID or quantity");
+        // 1. Validate stock availability
+        StockValidationResponse validation = inventoryClient.validateStock(
+                request.getProductId(), request.getQuantity());
+
+        if (!validation.getIsAvailable()) {
+            throw new RuntimeException("Insufficient stock: " + validation.getMessage());
         }
 
-        // Get product information first (fail fast if product doesn't exist)
-        ProductResponse product = getProductInfo(request.getProductId());
-
-        // Check stock availability
-        if (product.getStockQuantity() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock. Available: " + product.getStockQuantity() +
-                    ", Requested: " + request.getQuantity());
-        }
-
-        // Get or create cart using find-or-create pattern
         Cart cart = findOrCreateCart(userEmail);
+        String cartOrderId = "CART-" + cart.getId();
 
-        // Check if item already exists in cart
+        // 2. Check if item already exists in cart
         Optional<CartItem> existingItem = cartItemRepository.findByCartIdAndProductId(
                 cart.getId(), request.getProductId());
 
         if (existingItem.isPresent()) {
-            // Update existing item
+            // Update existing item AND adjust reservation
             CartItem item = existingItem.get();
-            int newQuantity = item.getQuantity() + request.getQuantity();
+            int oldQuantity = item.getQuantity();
+            int newQuantity = oldQuantity + request.getQuantity();
 
-            if (product.getStockQuantity() < newQuantity) {
-                throw new RuntimeException("Insufficient stock. Available: " + product.getStockQuantity() +
-                        ", Total requested: " + newQuantity);
-            }
+            // Adjust inventory reservation
+            inventoryClient.adjustReservationQuantity(cartOrderId,
+                    request.getProductId(), newQuantity, userEmail);
 
             item.setQuantity(newQuantity);
-            item.setUnitPrice(product.getPrice()); // Update price in case it changed
-            item.calculateTotalPrice();
             cartItemRepository.save(item);
         } else {
-            // Create new cart item
+            // Create new cart item AND reserve stock
+            ProductResponse product = getProductInfo(request.getProductId());
+
+            // Reserve stock for new item
+            StockReservationRequest reservationRequest = new StockReservationRequest();
+            reservationRequest.setProductId(request.getProductId());
+            reservationRequest.setQuantity(request.getQuantity());
+            reservationRequest.setOrderId(cartOrderId);
+            reservationRequest.setUserEmail(userEmail);
+            reservationRequest.setExpirationMinutes(60); // Longer for cart
+            reservationRequest.setNotes("Cart item reservation");
+
+            inventoryClient.reserveStock(reservationRequest);
+
+            // Create cart item
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setProductId(product.getId());
@@ -104,10 +116,9 @@ public class CartServiceImpl implements CartService {
             cartItemRepository.save(newItem);
         }
 
-        // Refresh cart to get updated items and recalculate total
+        // Refresh and return cart
         cart = cartRepository.findByUserEmailWithItems(userEmail)
                 .orElseThrow(() -> new RuntimeException("Cart not found after update"));
-
         cart.calculateTotalAmount();
         return cartRepository.save(cart);
     }
@@ -197,19 +208,20 @@ public Cart updateCartItem(String userEmail, Long cartItemId, UpdateCartItemRequ
     @Override
     @Transactional
     public Cart removeFromCart(String userEmail, Long cartItemId) {
-        Cart cart = getCartByUserEmail(userEmail);
-
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
 
-        // Verify item belongs to user's cart
-        if (!cartItem.getCart().getUserEmail().equals(userEmail)) {
-            throw new RuntimeException("Cart item does not belong to this user");
-        }
+        Cart cart = cartItem.getCart();
+        String cartOrderId = "CART-" + cart.getId();
 
+        // Release stock reservation
+        inventoryClient.releaseReservation(cartOrderId,
+                cartItem.getProductId(), userEmail);
+
+        // Remove cart item
         cartItemRepository.delete(cartItem);
 
-        // Refresh and recalculate
+        // Refresh cart
         cart = cartRepository.findByUserEmailWithItems(userEmail)
                 .orElseThrow(() -> new RuntimeException("Cart not found after update"));
         cart.calculateTotalAmount();
@@ -222,6 +234,15 @@ public Cart updateCartItem(String userEmail, Long cartItemId, UpdateCartItemRequ
         Optional<Cart> cartOpt = cartRepository.findByUserEmail(userEmail);
         if (cartOpt.isPresent()) {
             Cart cart = cartOpt.get();
+            String cartOrderId = "CART-" + cart.getId();
+
+            // Release all reservations
+            for (CartItem item : cart.getItems()) {
+                inventoryClient.releaseReservation(cartOrderId,
+                        item.getProductId(), userEmail);
+            }
+
+            // Clear cart items
             cartItemRepository.deleteAll(cart.getItems());
             cart.getItems().clear();
             cart.calculateTotalAmount();

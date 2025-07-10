@@ -1,6 +1,5 @@
 package com.ecommerce.inventory_service.service;
 
-
 import com.ecommerce.inventory_service.dto.*;
 import com.ecommerce.inventory_service.model.Inventory;
 import com.ecommerce.inventory_service.model.InventoryHistory;
@@ -124,9 +123,82 @@ public class InventoryServiceImpl implements InventoryService {
         return responses;
     }
 
+    // =====================================================
+    // CONSOLIDATED RESERVATION APPROACH
+    // =====================================================
+
     @Override
     @Transactional
     public StockReservation reserveStock(StockReservationRequest request) {
+        System.out.println(">>> Reserving stock for order: " + request.getOrderId() +
+                ", product: " + request.getProductId() +
+                ", quantity: " + request.getQuantity());
+
+        // Check for existing ACTIVE reservation for this order + product
+        List<StockReservation> existingReservations = reservationRepository
+                .findByOrderIdAndProductIdAndStatus(request.getOrderId(), request.getProductId(), ReservationStatus.ACTIVE);
+
+        if (!existingReservations.isEmpty()) {
+            // Consolidate with existing reservation
+            StockReservation existing = existingReservations.get(0); // Take first one
+            return consolidateReservation(existing, request);
+        } else {
+            // Create new reservation
+            return createNewReservation(request);
+        }
+    }
+
+    private StockReservation consolidateReservation(StockReservation existing, StockReservationRequest request) {
+        System.out.println(">>> Consolidating reservation. Current: " + existing.getQuantity() +
+                ", Adding: " + request.getQuantity());
+
+        Inventory inventory = getOrCreateInventory(request.getProductId());
+
+        // Calculate new total quantity
+        int currentQuantity = existing.getQuantity();
+        int additionalQuantity = request.getQuantity();
+        int newTotalQuantity = currentQuantity + additionalQuantity;
+
+        // Check if we can reserve the additional quantity
+        if (!inventory.canReserve(additionalQuantity)) {
+            throw new RuntimeException("Cannot reserve additional " + additionalQuantity +
+                    " items for product " + request.getProductId() +
+                    ". Available: " + inventory.getAvailableQuantity() +
+                    ", Already reserved: " + currentQuantity);
+        }
+
+        // Reserve the additional stock
+        inventory.reserveStock(additionalQuantity);
+        inventoryRepository.save(inventory);
+
+        // Update existing reservation
+        existing.setQuantity(newTotalQuantity);
+        existing.setUpdatedAt(LocalDateTime.now());
+        existing.setExpiresAt(LocalDateTime.now().plusMinutes(request.getExpirationMinutes())); // Reset expiry
+
+        String consolidationNote = String.format("Consolidated: %d + %d = %d",
+                currentQuantity, additionalQuantity, newTotalQuantity);
+        existing.setNotes(consolidationNote);
+
+        StockReservation saved = reservationRepository.save(existing);
+
+        // Record history
+        recordInventoryHistory(request.getProductId(), OperationType.STOCK_RESERVED,
+                -additionalQuantity,
+                inventory.getAvailableQuantity() + additionalQuantity,
+                inventory.getAvailableQuantity(),
+                request.getOrderId(), "RESERVATION_CONSOLIDATED",
+                request.getUserEmail(),
+                consolidationNote,
+                inventory.getLocation());
+
+        System.out.println(">>> Consolidated reservation total: " + newTotalQuantity);
+        return saved;
+    }
+
+    private StockReservation createNewReservation(StockReservationRequest request) {
+        System.out.println(">>> Creating new reservation for quantity: " + request.getQuantity());
+
         Inventory inventory = getOrCreateInventory(request.getProductId());
 
         // Check if we can reserve the stock
@@ -162,24 +234,30 @@ public class InventoryServiceImpl implements InventoryService {
                 "Stock reserved for order: " + request.getOrderId(),
                 inventory.getLocation());
 
+        System.out.println(">>> Created new reservation for quantity: " + request.getQuantity());
         return saved;
     }
 
     @Override
     @Transactional
     public StockReservation confirmReservation(String orderId, Long productId, String userEmail) {
-        StockReservation reservation = reservationRepository.findByOrderIdAndProductId(orderId, productId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found for order: " + orderId +
-                        " and product: " + productId));
+        System.out.println(">>> Confirming reservation for order: " + orderId + ", product: " + productId);
 
-        if (!reservation.isActive()) {
-            throw new RuntimeException("Reservation is not active. Status: " + reservation.getStatus());
+        // Find the ACTIVE reservation (should be unique with consolidated approach)
+        List<StockReservation> reservations = reservationRepository
+                .findByOrderIdAndProductIdAndStatus(orderId, productId, ReservationStatus.ACTIVE);
+
+        if (reservations.isEmpty()) {
+            throw new RuntimeException("No active reservation found for order: " + orderId +
+                    " and product: " + productId);
         }
+
+        StockReservation reservation = reservations.get(0); // Take first (should be only one)
 
         Inventory inventory = inventoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new RuntimeException("Inventory not found for product: " + productId));
 
-        // Confirm the reservation (remove from reserved permanently)
+        // Confirm the reservation (remove from reserved, don't add back to available)
         inventory.confirmStockUsage(reservation.getQuantity());
         inventoryRepository.save(inventory);
 
@@ -197,24 +275,30 @@ public class InventoryServiceImpl implements InventoryService {
                 "Stock confirmed for order: " + orderId,
                 inventory.getLocation());
 
+        System.out.println(">>> Confirmed reservation quantity: " + reservation.getQuantity());
         return saved;
     }
 
     @Override
     @Transactional
     public StockReservation releaseReservation(String orderId, Long productId, String userEmail) {
-        StockReservation reservation = reservationRepository.findByOrderIdAndProductId(orderId, productId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found for order: " + orderId +
-                        " and product: " + productId));
+        System.out.println(">>> Releasing reservation for order: " + orderId + ", product: " + productId);
 
-        if (!reservation.isActive()) {
-            throw new RuntimeException("Reservation is not active. Status: " + reservation.getStatus());
+        // Find the ACTIVE reservation (should be unique with consolidated approach)
+        List<StockReservation> reservations = reservationRepository
+                .findByOrderIdAndProductIdAndStatus(orderId, productId, ReservationStatus.ACTIVE);
+
+        if (reservations.isEmpty()) {
+            throw new RuntimeException("No active reservation found for order: " + orderId +
+                    " and product: " + productId);
         }
+
+        StockReservation reservation = reservations.get(0); // Take first (should be only one)
 
         Inventory inventory = inventoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new RuntimeException("Inventory not found for product: " + productId));
 
-        // Release the reservation (return to available stock)
+        // Release ALL reserved quantity back to available stock
         inventory.releaseReservedStock(reservation.getQuantity());
         inventoryRepository.save(inventory);
 
@@ -229,9 +313,10 @@ public class InventoryServiceImpl implements InventoryService {
                 inventory.getAvailableQuantity(),
                 orderId, "ORDER_CANCELLED",
                 userEmail,
-                "Stock released from order: " + orderId,
+                "Stock released from order: " + orderId + " (quantity: " + reservation.getQuantity() + ")",
                 inventory.getLocation());
 
+        System.out.println(">>> Released reservation quantity: " + reservation.getQuantity());
         return saved;
     }
 
@@ -245,6 +330,70 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional(readOnly = true)
     public List<StockReservation> getActiveReservationsForProduct(Long productId) {
         return reservationRepository.findActiveReservationsForProduct(productId, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional
+    public StockReservation adjustReservationQuantity(String orderId, Long productId, Integer newQuantity, String userEmail) {
+        System.out.println(">>> Adjusting reservation for order: " + orderId +
+                ", product: " + productId + ", new quantity: " + newQuantity);
+
+        // Find existing ACTIVE reservation
+        List<StockReservation> reservations = reservationRepository
+                .findByOrderIdAndProductIdAndStatus(orderId, productId, ReservationStatus.ACTIVE);
+
+        if (reservations.isEmpty()) {
+            throw new RuntimeException("No active reservation found for order: " + orderId +
+                    " and product: " + productId);
+        }
+
+        StockReservation reservation = reservations.get(0); // Take first (should be only one)
+
+        Inventory inventory = inventoryRepository.findByProductId(productId)
+                .orElseThrow(() -> new RuntimeException("Inventory not found for product: " + productId));
+
+        int currentReserved = reservation.getQuantity();
+        int difference = newQuantity - currentReserved;
+
+        if (difference > 0) {
+            // Need to reserve MORE stock
+            if (!inventory.canReserve(difference)) {
+                throw new RuntimeException("Cannot reserve additional " + difference +
+                        " items for product " + productId +
+                        ". Available: " + inventory.getAvailableQuantity());
+            }
+            inventory.reserveStock(difference);
+
+            recordInventoryHistory(productId, OperationType.STOCK_RESERVED, -difference,
+                    inventory.getAvailableQuantity() + difference, inventory.getAvailableQuantity(),
+                    orderId, "CART_UPDATE", userEmail,
+                    String.format("Increased reservation: %d → %d (+%d)", currentReserved, newQuantity, difference),
+                    inventory.getLocation());
+
+        } else if (difference < 0) {
+            // Need to release SOME stock
+            int releaseAmount = Math.abs(difference);
+            inventory.releaseReservedStock(releaseAmount);
+
+            recordInventoryHistory(productId, OperationType.STOCK_RELEASED, releaseAmount,
+                    inventory.getAvailableQuantity() - releaseAmount, inventory.getAvailableQuantity(),
+                    orderId, "CART_UPDATE", userEmail,
+                    String.format("Decreased reservation: %d → %d (-%d)", currentReserved, newQuantity, releaseAmount),
+                    inventory.getLocation());
+        }
+        // If difference == 0, no change needed
+
+        inventoryRepository.save(inventory);
+
+        // Update reservation
+        reservation.setQuantity(newQuantity);
+        reservation.setUpdatedAt(LocalDateTime.now());
+        reservation.setNotes(String.format("Quantity adjusted: %d → %d", currentReserved, newQuantity));
+
+        StockReservation saved = reservationRepository.save(reservation);
+        System.out.println(">>> Adjusted reservation from " + currentReserved + " to " + newQuantity);
+
+        return saved;
     }
 
     @Override
@@ -395,7 +544,6 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional
     public void syncWithProductCatalog() {
         // This method would sync with product catalog service
-        // Implementation depends on your product catalog service API
         System.out.println("Syncing with product catalog...");
         // TODO: Implement product catalog sync
     }

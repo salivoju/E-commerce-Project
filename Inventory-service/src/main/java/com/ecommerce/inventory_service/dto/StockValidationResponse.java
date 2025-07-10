@@ -14,7 +14,8 @@ public class StockValidationResponse {
     private Integer requestedQuantity;
     private String message;
 
-//    // All-args constructor
+
+//        // All-args constructor
 //    public StockValidationResponse(Long productId, Boolean isAvailable, Integer availableQuantity,
 //                                   Integer requestedQuantity, String message) {
 //        this.productId = productId;

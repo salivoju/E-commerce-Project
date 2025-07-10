@@ -27,6 +27,8 @@ public class InventoryController {
     @Autowired
     private InventoryService inventoryService;
 
+
+
     /**
      * Get inventory information for a specific product
      */
@@ -375,6 +377,34 @@ public class InventoryController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to perform bulk update: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Adjust reservation quantity (for cart updates)
+     */
+    @PutMapping("/adjust/{orderId}/{productId}")
+    public ResponseEntity<?> adjustReservationQuantity(
+            @PathVariable String orderId,
+            @PathVariable Long productId,
+            @RequestBody Map<String, Integer> quantityRequest,
+            @RequestHeader(value = "X-Authenticated-User-Username", defaultValue = "") String username) {
+
+        try {
+            Integer newQuantity = quantityRequest.get("quantity");
+            if (newQuantity == null || newQuantity < 0) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Valid quantity is required"));
+            }
+
+            StockReservation reservation = inventoryService.adjustReservationQuantity(orderId, productId, newQuantity, username);
+            return ResponseEntity.ok(reservation);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to adjust reservation: " + e.getMessage()));
         }
     }
 

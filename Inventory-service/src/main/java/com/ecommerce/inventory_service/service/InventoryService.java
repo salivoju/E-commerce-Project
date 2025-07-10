@@ -26,6 +26,7 @@ public interface InventoryService {
     StockReservation releaseReservation(String orderId, Long productId, String userEmail);
     List<StockReservation> getReservationsByOrderId(String orderId);
     List<StockReservation> getActiveReservationsForProduct(Long productId);
+    StockReservation adjustReservationQuantity(String orderId, Long productId, Integer newQuantity, String userEmail);
 
     // Bulk Operations
     List<Inventory> bulkUpdateStock(BulkStockUpdateRequest request);

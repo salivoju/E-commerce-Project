@@ -26,6 +26,8 @@ public interface StockReservationRepository extends JpaRepository<StockReservati
 
     Optional<StockReservation> findByOrderIdAndProductId(String orderId, Long productId);
 
+    List<StockReservation> findByOrderIdAndProductIdAndStatus(String orderId, Long productId, ReservationStatus status);
+
     // Find expired reservations
     @Query("SELECT sr FROM StockReservation sr WHERE sr.expiresAt < :currentTime AND sr.status = 'ACTIVE'")
     List<StockReservation> findExpiredReservations(@Param("currentTime") LocalDateTime currentTime);
