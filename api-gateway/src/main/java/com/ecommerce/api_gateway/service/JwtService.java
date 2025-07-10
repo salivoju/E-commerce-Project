@@ -36,17 +36,19 @@ public class JwtService {
     public List<String> extractRoles(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            // Since we don't store roles in JWT yet, let's extract from username
-            // This is a temporary solution for learning
-            String username = claims.getSubject();
 
-            // For now, hardcode admin check (we'll improve this)
-            if ("admin@example.com".equals(username)) {
-                return List.of("ROLE_ADMIN");
-            } else {
-                return List.of("ROLE_USER");
+            // Extract role from JWT claims (no hardcoding!)
+            String role = claims.get("role", String.class);
+            if (role != null && !role.isEmpty()) {
+                return List.of(role);
             }
+
+            // If no role found in token, default to USER
+            System.err.println("WARNING: No role found in JWT token for user: " + claims.getSubject());
+            return List.of("ROLE_USER");
+
         } catch (Exception e) {
+            System.err.println("ERROR: Failed to extract roles from JWT: " + e.getMessage());
             return List.of("ROLE_USER");
         }
     }

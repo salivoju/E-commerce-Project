@@ -22,17 +22,16 @@ public class AuthController {
 
     @PostMapping("/login")
     public JwtResponse authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
-        // We use the AuthenticationManager to validate the username and password.
+        // Authenticate the user
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
         );
 
-        // If authentication is successful, we generate a token.
         if (authentication.isAuthenticated()) {
+            // Generate token with user's role embedded
             String token = jwtService.generateToken(authentication.getName());
             return JwtResponse.builder().accessToken(token).build();
         } else {
-            // If authentication fails, we throw an exception.
             throw new UsernameNotFoundException("Invalid user request!");
         }
     }

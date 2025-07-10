@@ -49,6 +49,15 @@ spring:
             - Path=/api/v1/cart/**
           filters:
             - JwtAuthFilter
+
+      # Route #5: For the Inventory Service
+        - id: inventory-service-route
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/v1/inventory/**
+          filters:
+            - JwtAuthFilter
+
 eureka:
   instance: # This is the new block
     prefer-ip-address: true

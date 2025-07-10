@@ -71,6 +71,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Inventory Service Database
+  inventory-db:
+    image: postgres:15
+    container_name: inventory-service-db
+    environment:
+      POSTGRES_DB: inventory_service_db
+      POSTGRES_USER: ecommerce_user
+      POSTGRES_PASSWORD: ecommerce_pass
+    ports:
+      - "5436:5432"
+    volumes:
+      - inventory_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ecommerce_user -d inventory_service_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Optional: pgAdmin for database management
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -87,10 +105,12 @@ services:
       - product-db
       - order-db
       - cart-db
+      - inventory-db
 
 volumes:
   user_data:
   product_data:
   order_data:
   cart_data:
+  inventory_data:
   pgadmin_data:
