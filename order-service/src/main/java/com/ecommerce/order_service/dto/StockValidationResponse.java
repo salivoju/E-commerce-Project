@@ -1,8 +1,8 @@
-package com.ecommerce.inventory_service.dto;
+package com.ecommerce.order_service.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -14,7 +14,8 @@ public class StockValidationResponse {
     private Integer requestedQuantity;
     private String message;
 
-    //        // All-args constructor
+
+//        // All-args constructor
 //    public StockValidationResponse(Long productId, Boolean isAvailable, Integer availableQuantity,
 //                                   Integer requestedQuantity, String message) {
 //        this.productId = productId;

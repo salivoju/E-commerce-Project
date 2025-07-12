@@ -1,7 +1,7 @@
 package com.ecommerce.order_service.service;
 
-import com.ecommerce.inventory_service.dto.StockReservationRequest;
-import com.ecommerce.inventory_service.dto.StockValidationResponse;
+import com.ecommerce.order_service.dto.StockReservationRequest;
+import com.ecommerce.order_service.dto.StockValidationResponse;
 import com.ecommerce.order_service.client.InventoryServiceClient;
 import com.ecommerce.order_service.client.ProductServiceClient;
 import com.ecommerce.order_service.dto.CreateOrderRequest;
@@ -9,7 +9,7 @@ import com.ecommerce.order_service.dto.ProductResponse;
 import com.ecommerce.order_service.model.Order;
 import com.ecommerce.order_service.model.OrderItem;
 import com.ecommerce.order_service.model.OrderStatus;
-import com.ecommerce.inventory_service.model.StockReservation;
+import com.ecommerce.order_service.model.StockReservation;
 import com.ecommerce.order_service.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -135,6 +135,43 @@ public class OrderServiceImpl implements OrderService {
 
         return finalOrder;
     }
+
+    private void releaseOrderReservations(String orderId, List<OrderItem> items, String userEmail) {
+        System.err.println(">>> CLEANUP: Starting reservation release for failed order: " + orderId);
+
+        int successCount = 0;
+        int failureCount = 0;
+
+        try {
+            for (OrderItem item : items) {
+                try {
+                    System.err.println(">>> Attempting to release reservation for product: " +
+                            item.getProductId() + ", quantity: " + item.getQuantity());
+
+                    // Call inventory service via Feign client
+                    inventoryClient.releaseReservation(orderId, item.getProductId(),userEmail);
+
+                    successCount++;
+                    System.err.println(">>> ✅ Successfully released reservation for product: " + item.getProductId());
+
+                } catch (Exception e) {
+                    failureCount++;
+                    System.err.println(">>> Failed to release reservation for product: " +
+                            item.getProductId() + ", error: " + e.getMessage());
+
+                    // Continue with next item - don't let one failure stop the cleanup
+                }
+            }
+
+            System.err.println(">>> CLEANUP SUMMARY for order " + orderId +
+                    ": " + successCount + " released, " + failureCount + " failed");
+
+        } catch (Exception e) {
+            System.err.println(">>> CRITICAL: Unexpected error during cleanup for order: " + orderId +
+                    ", error: " + e.getMessage());
+        }
+    }
+
 
     @Override
     public List<Order> getOrdersByUser(String userEmail) {

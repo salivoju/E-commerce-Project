@@ -1,9 +1,9 @@
 package com.ecommerce.inventory_service.service;
 
 import com.ecommerce.inventory_service.client.ProductServiceClient;
+import com.ecommerce.inventory_service.dto.ProductResponse;
 import com.ecommerce.inventory_service.model.Inventory;
 import com.ecommerce.inventory_service.repository.InventoryRepository;
-import com.ecommerce.order_service.dto.ProductResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

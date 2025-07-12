@@ -12,6 +12,7 @@ spring:
       discovery:
         locator:
           enabled: true
+          lower-case-service-id: true
       # Define the routing rules
       routes:
         # Route #1: For the Product Service
@@ -61,9 +62,20 @@ spring:
 eureka:
   instance: # This is the new block
     prefer-ip-address: true
+    hostname: api-gateway
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://discovery-server:8761/eureka/
+#      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
 
 logging:
   level:

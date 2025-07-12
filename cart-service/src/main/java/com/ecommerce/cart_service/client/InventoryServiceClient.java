@@ -1,8 +1,8 @@
-package com.ecommerce.order_service.client;
+package com.ecommerce.cart_service.client;
 
-import com.ecommerce.order_service.dto.StockReservationRequest;
-import com.ecommerce.order_service.dto.StockValidationResponse;
-import com.ecommerce.order_service.model.StockReservation;
+import com.ecommerce.cart_service.dto.StockReservationRequest;
+import com.ecommerce.cart_service.dto.StockValidationResponse;
+import com.ecommerce.cart_service.model.StockReservation;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,11 +35,4 @@ public interface InventoryServiceClient {
                                                @PathVariable("productId") Long productId,
                                                @RequestParam("newQuantity") Integer newQuantity,
                                                @RequestHeader("X-Authenticated-User-Username") String username);
-
-    // ADD THIS METHOD:
-    @PostMapping("/api/v1/inventory/release/{orderId}/{productId}")
-    void releaseReservation(
-            @PathVariable("orderId") String orderId,
-            @PathVariable("productId") Long productId);
-
 }

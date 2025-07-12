@@ -13,3 +13,15 @@ eureka:
     register-with-eureka: false
     # A Eureka server does not need to fetch a copy of the registry from itself.
     fetch-registry: false
+  server:
+    enable-self-preservation: false
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

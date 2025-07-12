@@ -2,10 +2,10 @@ package com.ecommerce.cart_service.service;
 
 import com.ecommerce.cart_service.client.ProductServiceClient;
 import com.ecommerce.cart_service.dto.AddToCartRequest;
-import com.ecommerce.inventory_service.dto.StockReservationRequest;
-import com.ecommerce.inventory_service.dto.StockValidationResponse;
-import com.ecommerce.order_service.client.InventoryServiceClient;
-import com.ecommerce.order_service.dto.ProductResponse;
+import com.ecommerce.cart_service.dto.StockReservationRequest;
+import com.ecommerce.cart_service.dto.StockValidationResponse;
+import com.ecommerce.cart_service.client.InventoryServiceClient;
+import com.ecommerce.cart_service.dto.ProductResponse;
 import com.ecommerce.cart_service.dto.UpdateCartItemRequest;
 import com.ecommerce.cart_service.model.Cart;
 import com.ecommerce.cart_service.model.CartItem;
