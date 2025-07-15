@@ -33,6 +33,9 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            if (exchange.getRequest().getMethod().name().equalsIgnoreCase("OPTIONS")) {
+                return chain.filter(exchange);
+            }
             // Check if the request is to a secured endpoint
             if (validator.isSecured.test(exchange.getRequest())) {
                 // Check if the request has the Authorization header
