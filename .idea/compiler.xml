@@ -19,7 +19,7 @@
         </processorPath>
         <module name="product-catalog-service" />
       </profile>
-      <profile name="Annotation profile for cart-service" enabled="true">
+      <profile name="Annotation profile for user-service" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -27,9 +27,9 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
         </processorPath>
         <module name="cart-service" />
+        <module name="user-service" />
         <module name="order-service" />
         <module name="inventory-service" />
-        <module name="user-service" />
       </profile>
     </annotationProcessing>
   </component>

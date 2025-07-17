@@ -12,14 +12,12 @@ public class UserInfoDetails implements UserDetails {
 
     private final User user;
 
-
     public UserInfoDetails(User user) {
         this.user = user;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // For now, we will return an empty list as we are not using roles yet.
         return List.of(new SimpleGrantedAuthority(user.getRole().name()));
     }
 
@@ -33,25 +31,29 @@ public class UserInfoDetails implements UserDetails {
         return user.getEmail();
     }
 
-    // For simplicity, we are returning true for these.
-    // In a real application, you might have logic to disable accounts.
+    // CHANGED: Now using actual User entity values instead of hardcoded true
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return user.getAccountNonExpired() != null ? user.getAccountNonExpired() : true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return user.getAccountNonLocked() != null ? user.getAccountNonLocked() : true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return user.getCredentialsNonExpired() != null ? user.getCredentialsNonExpired() : true;
     }
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return user.getEnabled() != null ? user.getEnabled() : true;
+    }
+
+    // Helper method to get the actual User entity if needed
+    public User getUser() {
+        return user;
     }
 }

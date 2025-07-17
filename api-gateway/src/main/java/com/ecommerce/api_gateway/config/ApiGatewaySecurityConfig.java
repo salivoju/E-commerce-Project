@@ -18,7 +18,7 @@ public class ApiGatewaySecurityConfig {
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()  // Allow preflight
                         .pathMatchers("/api/v1/auth/**").permitAll()
                         .pathMatchers("/api/v1/users/register").permitAll()
-                        .anyExchange().authenticated()
+                        .anyExchange().permitAll()
                 )
                 .cors(Customizer.withDefaults())  // Enables CORS
                 .build();
